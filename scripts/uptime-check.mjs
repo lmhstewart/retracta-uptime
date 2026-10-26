@@ -51,13 +51,13 @@ async function sendMail({ subject, text }) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject: `[Retracta] ${subject}`, text }),
+    body: JSON.stringify({ from, to, subject: `[Rescinda] ${subject}`, text }),
   });
   if (!response.ok) throw new Error(`Resend ${response.status}: ${(await response.text()).slice(0, 200)}`);
 }
 
 async function main() {
-  const url = process.env.HEALTH_URL || "https://app.withdrawbutton.com/healthz";
+  const url = process.env.HEALTH_URL || "https://app.rescinda.app/healthz";
   const stateFile = process.env.UPTIME_STATE_FILE || "uptime-state.json";
   let state = null;
   try {

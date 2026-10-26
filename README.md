@@ -1,7 +1,7 @@
 # retracta-uptime
 
-External uptime monitor for the Retracta Shopify app. Every 5 minutes GitHub Actions calls
-`https://app.withdrawbutton.com/healthz` (the app server and its database). After 2 failed checks in a
+External uptime monitor for the Rescinda Shopify app. Every 5 minutes GitHub Actions calls
+`https://app.rescinda.app/healthz` (the app server and its database). After 2 failed checks in a
 row the operator gets one e-mail; when it answers again, one recovery e-mail (Resend).
 
 - Script: `scripts/uptime-check.mjs` (a copy of the one in the private app repository, which also has its tests).

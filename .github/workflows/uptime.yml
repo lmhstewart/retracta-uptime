@@ -1,4 +1,4 @@
-# External uptime check of Retracta (https://app.withdrawbutton.com/healthz:
+# External uptime check of Rescinda (https://app.rescinda.app/healthz:
 # server + database) every 5 minutes. 2 failures in a row -> one "down" mail,
 # first success afterwards -> one "recovered" mail, via Resend to the operator
 # (scripts/uptime-check.mjs). State between runs lives in the Actions cache.
@@ -50,7 +50,7 @@ jobs:
       - name: Check /healthz
         run: node scripts/uptime-check.mjs
         env:
-          HEALTH_URL: ${{ inputs.health_url || (github.event_name == 'push' && contains(github.event.head_commit.message, '[test-fail]') && 'https://app.withdrawbutton.com/healthz-monitor-test-fail') || 'https://app.withdrawbutton.com/healthz' }}
+          HEALTH_URL: ${{ inputs.health_url || (github.event_name == 'push' && contains(github.event.head_commit.message, '[test-fail]') && 'https://app.rescinda.app/healthz-monitor-test-fail') || 'https://app.rescinda.app/healthz' }}
           UPTIME_STATE_FILE: uptime-state.json
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
