@@ -1,0 +1,81 @@
+# External uptime check of Retracta (https://app.withdrawbutton.com/healthz:
+# server + database) every 5 minutes. 2 failures in a row -> one "down" mail,
+# first success afterwards -> one "recovered" mail, via Resend to the operator
+# (scripts/uptime-check.mjs). State between runs lives in the Actions cache.
+#
+# Secrets: RESEND_API_KEY (send-only key), RESEND_FROM_EMAIL.
+# This repository is public on purpose: Actions minutes are free for public
+# repositories. Nothing secret is in it (the health URL is public anyway).
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+    # Monthly keep-alive: GitHub disables schedules in public repositories after
+    # 60 days without activity, so the keepalive job below commits once a month.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+    inputs:
+      health_url:
+        description: "URL to check (empty = production /healthz; a failing URL tests the alert)"
+        required: false
+  # A push also runs one check. "[test-fail]" in the commit message checks a
+  # failing URL instead (to test the alert without touching production).
+  push:
+    branches: [main]
+    paths-ignore: [keepalive.txt]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.event.schedule != '17 4 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: uptime-state.json
+          key: uptime-state-${{ github.run_id }}
+          restore-keys: uptime-state-
+
+      - name: Check /healthz
+        run: node scripts/uptime-check.mjs
+        env:
+          HEALTH_URL: ${{ inputs.health_url || (github.event_name == 'push' && contains(github.event.head_commit.message, '[test-fail]') && 'https://app.withdrawbutton.com/healthz-monitor-test-fail') || 'https://app.withdrawbutton.com/healthz' }}
+          UPTIME_STATE_FILE: uptime-state.json
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          ALERT_EMAIL_TO: lewis.mhstewart@gmail.com
+
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: uptime-state.json
+          key: uptime-state-${{ github.run_id }}
+
+  keepalive:
+    if: github.event.schedule == '17 4 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Commit the monthly heartbeat
+        run: |
+          date -u +%Y-%m-%dT%H:%M:%SZ > keepalive.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add keepalive.txt
+          git commit -m "Monthly keep-alive (keeps the uptime schedule enabled)"
+          git push
